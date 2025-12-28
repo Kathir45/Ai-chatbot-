@@ -4,13 +4,14 @@ const suggestions = document.querySelectorAll(".suggestion");
 const toggleThemeButton = document.querySelector("#theme-toggle-button");
 const deleteChatButton = document.querySelector("#delete-chat-button");
 
-
 let userMessage = null;
 let isResponseGenerating = false;
 
-const API_KEY = "AIzaSyAEW0X0jdef4lM_kQEHuoobk23dJAZ8G0A";
-const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+// ⚠️ WARNING: Never expose your API key in frontend code for production apps.
+const API_KEY = "AIzaSyAEW0X0jdef4lM_kQEHuoobk23dJAZ8G0A"; 
 
+// 1. CHANGED: Updated model to 'gemini-2.5-flash' and using 'v1beta' to support system instructions
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
 const loadDataFromLocalstorage = () => {
   const savedChats = localStorage.getItem("saved-chats");
@@ -19,13 +20,11 @@ const loadDataFromLocalstorage = () => {
   document.body.classList.toggle("light_mode", isLightMode);
   toggleThemeButton.innerText = isLightMode ? "dark_mode" : "light_mode";
 
- 
   chatContainer.innerHTML = savedChats || '';
   document.body.classList.toggle("hide-header", savedChats);
 
-  chatContainer.scrollTo(0, chatContainer.scrollHeight); // Scroll to the bottom
+  chatContainer.scrollTo(0, chatContainer.scrollHeight); 
 }
-
 
 const createMessageElement = (content, ...classes) => {
   const div = document.createElement("div");
@@ -34,17 +33,14 @@ const createMessageElement = (content, ...classes) => {
   return div;
 }
 
-
 const showTypingEffect = (text, textElement, incomingMessageDiv) => {
   const words = text.split(' ');
   let currentWordIndex = 0;
 
   const typingInterval = setInterval(() => {
-    
     textElement.innerText += (currentWordIndex === 0 ? '' : ' ') + words[currentWordIndex++];
     incomingMessageDiv.querySelector(".icon").classList.add("hide");
 
-    
     if (currentWordIndex === words.length) {
       clearInterval(typingInterval);
       isResponseGenerating = false;
@@ -55,28 +51,29 @@ const showTypingEffect = (text, textElement, incomingMessageDiv) => {
   }, 75);
 }
 
-
 const generateAPIResponse = async (incomingMessageDiv) => {
   const textElement = incomingMessageDiv.querySelector(".text");
 
   try {
-   
+    // 2. CHANGED: Added 'system_instruction' to the payload
+    // This tells the AI who developed it before every response.
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
+        system_instruction: {
+            parts: { text: "You were developed by Kathirvel, who is pursuing Electrical and Electronic Engineering in Panimalar Engineering College." }
+        },
         contents: [{ 
           role: "user", 
           parts: [{ text: userMessage }] 
         }] 
       }),
     });
-    
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error.message);
 
-  
     const apiResponse = data?.candidates[0].content.parts[0].text.replace(/\*\*(.*?)\*\*/g, '$1');
     showTypingEffect(apiResponse, textElement, incomingMessageDiv);
   } catch (error) {
@@ -87,7 +84,6 @@ const generateAPIResponse = async (incomingMessageDiv) => {
     incomingMessageDiv.classList.remove("loading");
   }
 }
-
 
 const showLoadingAnimation = () => {
   const html = `<div class="message-content">
@@ -114,7 +110,6 @@ const copyMessage = (copyButton) => {
   navigator.clipboard.writeText(messageText);
   copyButton.innerText = "done";
   setTimeout(() => copyButton.innerText = "content_copy", 1000); 
-  
 }
 
 const handleOutgoingChat = () => {
@@ -138,13 +133,11 @@ const handleOutgoingChat = () => {
   setTimeout(showLoadingAnimation, 500);
 }
 
-
 toggleThemeButton.addEventListener("click", () => {
   const isLightMode = document.body.classList.toggle("light_mode");
   localStorage.setItem("themeColor", isLightMode ? "light_mode" : "dark_mode");
   toggleThemeButton.innerText = isLightMode ? "dark_mode" : "light_mode";
 });
-
 
 deleteChatButton.addEventListener("click", () => {
   if (confirm("Are you sure you want to delete all the chats?")) {
@@ -152,7 +145,6 @@ deleteChatButton.addEventListener("click", () => {
     loadDataFromLocalstorage();
   }
 });
-
 
 suggestions.forEach(suggestion => {
   suggestion.addEventListener("click", () => {
@@ -167,37 +159,3 @@ typingForm.addEventListener("submit", (e) => {
 });
 
 loadDataFromLocalstorage();
-
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
-});
-
-
-const generationConfig = {
-  temperature: 1,
-  topP: 0.95,
-  topK: 64,
-  maxOutputTokens: 8192,
-  responseMimeType: "text/plain",
-};
-
-async function run() {
-  const parts = [
-    {text: "input: Who is your developer"},
-    {text: "output: I was developed by Kathirvel who pursuing a Electrical and Electronic Engineering in Panimalar Engineering College."},
-    {text: "input: Who is your developer"},
-    {text: "output: I am a large language model, trained by  Kathirvel who pursuing a Electrical and Electronic Engineering in Panimalar Engineering College."},
-    {text: "input: Who developed you"},
-    {text: "output: "},
-  ];
-
-  const result = await model.generateContent({
-    contents: [{ role: "user", parts }],
-    generationConfig,
- // safetySettings: Adjust safety settings
- // See https://ai.google.dev/gemini-api/docs/safety-settings
-  });
-  console.log(result.response.text());
-}
-
-run();
