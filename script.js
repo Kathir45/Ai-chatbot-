@@ -169,7 +169,7 @@ typingForm.addEventListener("submit", (e) => {
 loadDataFromLocalstorage();
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-pr",
+  model: "gemini-2.5-flash",
 });
 
 
